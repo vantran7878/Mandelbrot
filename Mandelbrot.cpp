@@ -1,7 +1,10 @@
+#include <iostream>
+#include <iomanip>
 #include <cstdint>
 #include <complex>
 #include "raylib-5.0_linux_amd64/include/raylib.h"
 #include <deque>
+#include <chrono>
 
 using namespace std::complex_literals;
 
@@ -33,7 +36,7 @@ struct Point {
 const Point START_POINT = {-5.0, -5.0};
 const Point END_POINT = {5.0, 5.0};
 const Point RESOLUTION = {1280, 720};
-const double STEP = 0.01;
+const double STEP = 0.001;
 const double SCALE = 300;
 const std::complex<double> c = -0.8 + 0.156i;
 
@@ -49,7 +52,6 @@ std::complex<double> julia_equation(std::complex<double> seed) {
 bool check_to_draw(std::complex<double> seed, uint32_t test_time) {
   uint32_t run_time = 0;
   std::complex<double> test_result = julia_equation(seed);
-  bool can_draw = false;
 
   while(run_time++ < test_time) {
     if (std::isnan(test_result.real()) || std::isnan(test_result.imag())) {
@@ -105,7 +107,15 @@ std::deque<Point> get_julia_set() {
 }
 
 int main() {
+  auto start = std::chrono::high_resolution_clock::now();
+  // Code to benchmark
   std::deque<Point> julia_set = get_julia_set();
+  // Record the ending time
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+  
+  std::cout << std::setprecision(8) << "\nCalc julia_set: " << duration.count() << '\n';
+  
   InitWindow(1280, 720, "Mandelbrot");
   SetTargetFPS(60);
 
