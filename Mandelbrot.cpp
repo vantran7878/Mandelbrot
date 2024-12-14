@@ -5,44 +5,17 @@
 #include "raylib-5.0_linux_amd64/include/raylib.h"
 #include <deque>
 #include <chrono>
+#include "Render.h"
 
 using namespace std::complex_literals;
 
-struct Point {
-  double x;
-  double y;
-  Point() {
-    this->x = 0.0;
-    this->y = 0.0;
-  }
-  Point(double x, double y) : x{x}, y{y} {
-  }
-  Point(std::complex<double> c_num)
-  : x{c_num.real()},
-    y{c_num.imag()} {
-  }
 
-  Point(const Point &other)
-  : x{other.x},
-    y{other.y} {
-  }
-
-  void from_complex(std::complex<double> c_num) {
-    this->x = c_num.real();
-    this->y = c_num.imag();
-  }
-};
-
-const Point START_POINT = {-5.0, -5.0};
-const Point END_POINT = {5.0, 5.0};
-const Point RESOLUTION = {1280, 720};
+const Point START_POINT = {-2.0, -2.0};
+const Point END_POINT = {2.0, 2.0};
 const double STEP = 0.001;
-const double SCALE = 300;
-const std::complex<double> c = -0.8 + 0.156i;
+const std::complex<double> c_start = -0.8 + 0.156i;
 
-using namespace std::complex_literals;
-
-std::complex<double> julia_equation(std::complex<double> seed) {
+std::complex<double> julia_equation(std::complex<double> seed, std::complex<double> c) {
   //equation: y = z^2 - 1
   std::complex<double> result = std::pow(seed, 2);
   result += c;
@@ -51,18 +24,14 @@ std::complex<double> julia_equation(std::complex<double> seed) {
 
 bool check_to_draw(std::complex<double> seed, uint32_t test_time) {
   uint32_t run_time = 0;
-  std::complex<double> test_result = julia_equation(seed);
+  std::complex<double> test_result = julia_equation(seed, seed);
 
   while(run_time++ < test_time) {
-    if (std::isnan(test_result.real()) || std::isnan(test_result.imag())) {
+    if (abs(test_result) >=2) {
       run_time = 1;
       break;
     }
-    if (std::isinf(test_result.real()) || std::isinf(test_result.imag())) {
-      run_time = 1;
-      break;
-    }
-    test_result = julia_equation(test_result);
+    test_result = julia_equation(test_result, seed);
   }
 
   if (run_time >= test_time) {
@@ -71,15 +40,6 @@ bool check_to_draw(std::complex<double> seed, uint32_t test_time) {
   return false;
 }
 
-void draw_point_pixel(Point point) {
-  Point mid_point = {RESOLUTION.x / 2, RESOLUTION.y / 2};
-  Point draw_point = {SCALE * point.x, SCALE * point.y};
-  draw_point.x += mid_point.x;
-  draw_point.y = mid_point.y - draw_point.y;
-  //draw_point.x += mid_point.x;
-  //draw_point.y += mid_point.y;
-  DrawPixel(draw_point.x, draw_point.y, BLACK);
-}
 
 void draw_julia_set(std::deque<Point> point_set) {
   for (Point p : point_set) {
@@ -107,10 +67,9 @@ std::deque<Point> get_julia_set() {
 }
 
 int main() {
-  auto start = std::chrono::high_resolution_clock::now();
   // Code to benchmark
+  auto start = std::chrono::high_resolution_clock::now();
   std::deque<Point> julia_set = get_julia_set();
-  // Record the ending time
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end - start;
   
