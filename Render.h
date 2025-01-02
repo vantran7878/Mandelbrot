@@ -26,7 +26,11 @@ struct Point {
   }
 };
 
+struct ColorPoint {
+  Point cordinate;
+  Color color;
+};
+
 const Point RESOLUTION = {1280, 720};
 const double SCALE = 300;
 
-void draw_point_pixel(Point point);

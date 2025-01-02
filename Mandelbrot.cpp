@@ -7,6 +7,7 @@
 #include <chrono>
 #include "Render.h"
 
+
 using namespace std::complex_literals;
 
 
@@ -16,73 +17,88 @@ const double STEP = 0.001;
 const std::complex<double> c_start = -0.8 + 0.156i;
 
 std::complex<double> julia_equation(std::complex<double> seed, std::complex<double> c) {
-  //equation: y = z^2 - 1
   std::complex<double> result = std::pow(seed, 2);
   result += c;
   return result;
 }
 
-bool check_to_draw(std::complex<double> seed, uint32_t test_time) {
-  uint32_t run_time = 0;
+Color pixel_to_draw(std::complex<double> seed, uint32_t max_iteration) {
+  uint32_t iteration = 0;
   std::complex<double> test_result = julia_equation(seed, seed);
 
-  while(run_time++ < test_time) {
+  while(iteration++ < max_iteration) {
     if (abs(test_result) >=2) {
-      run_time = 1;
       break;
     }
     test_result = julia_equation(test_result, seed);
   }
 
-  if (run_time >= test_time) {
-    return true;
-  }
-  return false;
+  unsigned char r = iteration % 256, g = iteration % 128, b = iteration % 64;
+  return (iteration >= max_iteration) ? BLACK : Color {r, g, b, 0};
 }
 
 
-void draw_julia_set(std::deque<Point> point_set) {
-  for (Point p : point_set) {
-    draw_point_pixel(p);
-  }
-}
+std::deque<ColorPoint> get_julia_set() {
+  Point traverse = START_POINT;
 
-std::deque<Point> get_julia_set() {
-  Point traverse_point = START_POINT;
-  std::deque<Point> point_set;
-  for (traverse_point.x = START_POINT.x; 
-       traverse_point.x < END_POINT.x; 
-       traverse_point.x += STEP) {
+  std::deque<ColorPoint> point_set;
+  for (traverse.x = START_POINT.x; 
+       traverse.x < END_POINT.x; 
+       traverse.x += STEP) {
 
-    for (traverse_point.y = START_POINT.y; 
-         traverse_point.y < END_POINT.y; 
-         traverse_point.y += STEP) {
-      if (check_to_draw(std::complex<double>{traverse_point.x, traverse_point.y}, 100)) {
-        point_set.push_back(traverse_point); 
-      }
+    for (traverse.y = START_POINT.y; 
+         traverse.y < END_POINT.y; 
+         traverse.y += STEP) {
+       Color c = pixel_to_draw(std::complex<double>{traverse.x, traverse.y}, 100);
+       point_set.emplace_back(ColorPoint{traverse, c}); 
     }
   }
-
   return point_set;
+}
+
+RenderTexture2D get_texture(std::deque<ColorPoint> point_set) {
+  std::cout << "In function OK\n";
+  RenderTexture2D texture = LoadRenderTexture(RESOLUTION.x, RESOLUTION.y);
+  std::cout << "Load Render OK\n";
+  BeginTextureMode(texture);
+  ClearBackground(SKYBLUE);
+
+  for (ColorPoint p : point_set) {
+    Point point = p.cordinate;
+    Color color = p.color;
+    Point mid_point = {RESOLUTION.x / 2, RESOLUTION.y / 2};
+    Point draw_point = {SCALE * point.x, SCALE * point.y};
+    draw_point.x += mid_point.x;
+    draw_point.y = mid_point.y - draw_point.y;
+    DrawPixel(draw_point.x, draw_point.y, color);
+  }
+
+  std::cout << "Draw OK\n";
+
+  EndTextureMode();
+  return texture;
 }
 
 int main() {
   // Code to benchmark
   auto start = std::chrono::high_resolution_clock::now();
-  std::deque<Point> julia_set = get_julia_set();
+  std::deque<ColorPoint> fractal_set = get_julia_set();
   auto end = std::chrono::high_resolution_clock::now();
+
+
   std::chrono::duration<double> duration = end - start;
   
-  std::cout << std::setprecision(8) << "\nCalc julia_set: " << duration.count() << '\n';
+  std::cout << std::setprecision(8) << "\nCalc fractal set: " << duration.count() << '\n';
   
   InitWindow(1280, 720, "Mandelbrot");
+  RenderTexture2D texture = get_texture(fractal_set);
   SetTargetFPS(60);
 
   while(!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
+    DrawTexture(texture.texture, 0, 0, WHITE);
 
-    draw_julia_set(julia_set);
     EndDrawing();
   }
   CloseWindow();
